@@ -1,3 +1,25 @@
+# rsnps 0.3.2
+
+rsnps 0.3.2
+===========
+
+### MINOR IMPROVEMENTS
+
+* Reordered `ncbi_snp_query` dataframe output to have chromosome and bp beside each other (#70). 
+
+### DOCUMENTATION FIXES
+
+* Restructured and fixed a typo in `README.Rmd` and added link to vignette (#63).
+
+### BUG FIXES
+
+* Fixed the test for `allphenotypes` function by making it less specific (#72). 
+
+
+rsnps 0.3.1
+===========
+
+
 rsnps 0.3.0
 ===========
 
@@ -8,11 +30,11 @@ rsnps 0.3.0
 ### NEW FEATURES
 
 * the three NCBI functions gain a new parameter `key` for passing in an NCBI Entrez API key. You can alteernatively (and we encourage this) store your key as an environment variable and we'll use that instead. The key allows you to have higher rate limits than without a key (#58)
-* http requests are now done using `crul` instead of `httr` (#44)
 * gains new function `ncbi_snp_summary()` for summary data on a SNP (#31)
 
 ### MINOR IMPROVEMENTS
 
+* http requests are now done using `crul` instead of `httr` (#44)
 * now using markdown formatted documentation (#56)
 * documented in `ncbi_snp_query()` that we can not change the assembly (#49)
 
