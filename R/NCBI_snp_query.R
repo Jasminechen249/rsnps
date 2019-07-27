@@ -88,10 +88,10 @@ ncbi_snp_query <- function(SNPs, key = NULL, ...) {
   cli <- crul::HttpClient$new(url = url, opts = list(...))
   key <- check_key(key %||% "")
   res <- cli$get(query = rsnps_comp(list(db = 'snp', mode = 'xml', 
-    id = paste( SNPs, collapse = ","), api_key = key)))
+    id = paste( SNPs_num, collapse = ","), api_key = key)))
   res$raise_for_status()
   xml <- res$parse("UTF-8")
-
+  
   xml_parsed <- XML::xmlInternalTreeParse(xml)
   xml_list_ <- XML::xmlToList(xml_parsed)
 
@@ -99,8 +99,11 @@ ncbi_snp_query <- function(SNPs, key = NULL, ...) {
   xml2::xml_ns_strip(x2)
   x2kids <- xml2::xml_children(x2)
 
+  
   ## we don't need the last element; it's just metadata
   xml_list <- xml_list_[ 1:(length(xml_list_) - 1) ]
+
+  
 
   ## Check which rs numbers were found, and warn if one was not found
   ## one thing that makes our life difficult: there can be multiple
@@ -108,7 +111,7 @@ ncbi_snp_query <- function(SNPs, key = NULL, ...) {
   found_snps <- unname( unlist( sapply( xml_list, function(x) {
 
     ## check if the SNP is either in the current rsId, or the merged SNP list
-    attr_rsIds <- tryget( x$.attrs["rsId"] )
+    attr_rsIds <- tryget( x$Id)
 
     merge_indices <- which( names(x) == "MergeHistory" )
     if (length(merge_indices)) {
@@ -122,6 +125,8 @@ ncbi_snp_query <- function(SNPs, key = NULL, ...) {
 
   }) ) )
 
+  return(found_snps)
+  
   found_snps <- found_snps[ !is.na(found_snps) ]
   found_snps <- paste(sep = '', "rs", found_snps)
 
