@@ -80,6 +80,10 @@ ncbi_snp_query <- function(SNPs, key = NULL, ...) {
          "'rs', e.g. rs420358", call. = FALSE)
   }
 
+  
+  ## transform all SNPs into numbers (rsid)
+  SNPs_num <- gsub("rs", "", SNPs)
+  
   url <- "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
   cli <- crul::HttpClient$new(url = url, opts = list(...))
   key <- check_key(key %||% "")
