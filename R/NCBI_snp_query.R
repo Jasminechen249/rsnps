@@ -112,7 +112,7 @@ ncbi_snp_query <- function(SNPs, key = NULL, ...) {
   found_snps <- unname( unlist( sapply( xml_list, function(x) {
 
     ## check if the SNP is either in the current rsId, or the merged SNP list
-    attr_rsIds <- tryget( x$Id)
+    attr_rsIds <- tryget( x$DocumentSummarySet$DocumentSummary$SNP_ID)
 
     ## TODO: figure out where this part has moved in the xml file
     merge_indices <- which( names(x) == "MergeHistory" )
