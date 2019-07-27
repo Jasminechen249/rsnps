@@ -115,7 +115,7 @@ ncbi_snp_query <- function(SNPs, key = NULL, ...) {
 
     merge_indices <- which( names(x) == "MergeHistory" )
     if (length(merge_indices)) {
-      merge_rsIds <- sapply(x[merge_indices], "[[", "rsId")
+      merge_rsIds <- sapply(x[merge_indices], "[[", "Id")
     } else {
       merge_rsIds <- NULL
     }
