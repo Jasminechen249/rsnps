@@ -87,10 +87,11 @@ ncbi_snp_query <- function(SNPs, key = NULL, ...) {
   url <- "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
   cli <- crul::HttpClient$new(url = url, opts = list(...))
   key <- check_key(key %||% "")
-  res <- cli$get(query = rsnps_comp(list(db = 'snp', mode = 'xml', 
-    id = paste( SNPs_num, collapse = ","), api_key = key)))
+  res <- cli$get(query = rsnps_comp(list(db = 'snp', 
+    id = paste( SNPs_num, collapse = ","), version = "2.0")), api_key = key)
   res$raise_for_status()
   xml <- res$parse("UTF-8")
+  
   
   xml_parsed <- XML::xmlInternalTreeParse(xml)
   xml_list_ <- XML::xmlToList(xml_parsed)
@@ -102,7 +103,7 @@ ncbi_snp_query <- function(SNPs, key = NULL, ...) {
   
   ## we don't need the last element; it's just metadata
   xml_list <- xml_list_[ 1:(length(xml_list_) - 1) ]
-
+  return(xml_list)
   
 
   ## Check which rs numbers were found, and warn if one was not found
@@ -113,6 +114,7 @@ ncbi_snp_query <- function(SNPs, key = NULL, ...) {
     ## check if the SNP is either in the current rsId, or the merged SNP list
     attr_rsIds <- tryget( x$Id)
 
+    ## TODO: figure out where this part has moved in the xml file
     merge_indices <- which( names(x) == "MergeHistory" )
     if (length(merge_indices)) {
       merge_rsIds <- sapply(x[merge_indices], "[[", "Id")
@@ -125,8 +127,6 @@ ncbi_snp_query <- function(SNPs, key = NULL, ...) {
 
   }) ) )
 
-  return(found_snps)
-  
   found_snps <- found_snps[ !is.na(found_snps) ]
   found_snps <- paste(sep = '', "rs", found_snps)
 
