@@ -92,27 +92,31 @@ ncbi_snp_query <- function(SNPs, key = NULL, ...) {
   res$raise_for_status()
   xml <- res$parse("UTF-8")
   
-  
   xml_parsed <- XML::xmlInternalTreeParse(xml)
-  xml_list_ <- XML::xmlToList(xml_parsed)
 
+  xml_list_ <- XML::xmlToList(xml_parsed, simplify = TRUE) 
+
+  ## TODO not sure we need this part
   x2 <- xml2::read_xml(xml)
   xml2::xml_ns_strip(x2)
   x2kids <- xml2::xml_children(x2)
 
   
   ## we don't need the last element; it's just metadata
-  xml_list <- xml_list_#[ 1:(length(xml_list_) - 1) ]
- # return(xml_list)
+  xml_list <- xml_list_[-c(1,length(xml_list_))]  ## remove the first and the last information (DbBuild + .attrs OK)
+ # xml_list <- xml_list_#[ 1:(length(xml_list_) - 1) ]
+  #return(xml_list)
   
 
+  ## TODO replace all \n\t with NULL
+  
   ## Check which rs numbers were found, and warn if one was not found
   ## one thing that makes our life difficult: there can be multiple
   ## XML entries with the same name. make sure we go through all of them
   found_snps <- unname( unlist( sapply( xml_list, function(x) {
 
     ## check if the SNP is either in the current rsId, or the merged SNP list
-    attr_rsIds <- tryget( x$DocumentSummary$SNP_ID )
+    attr_rsIds <- tryget( x$SNP_ID )
 
     ## TODO: figure out where this part has moved in the xml file
     merge_indices <- which( names(x) == "MergeHistory" )
@@ -143,22 +147,24 @@ ncbi_snp_query <- function(SNPs, key = NULL, ...) {
 
   for (i in seq_along(SNPs)) {
     my_list <- xml_list[[i]]
-    my_chr <- tryget(my_list$DocumentSummary$CHR)
+    my_chr <- tryget(my_list$CHR)
     if (is.null(my_chr)) {
       my_chr <- NA
       warning("No chromosomal information for ", SNPs[i], "; may be unmapped", 
               call. = FALSE)
     }
-    my_snp <- tryget(my_list$DocumentSummary$SNP_ID )
+    my_snp <- tryget(my_list$SNP_ID )
     if ( !is.na(my_snp) ) {
       my_snp <- paste(sep = '', "rs", my_snp)
     }
     if (my_snp != SNPs[i] ) {
       warning(SNPs[i], " has been merged into ", my_snp, call. = FALSE)
     }
-    my_snpClass <- tryget(my_list$DocumentSummary$SNP_CLASS)
+    my_snpClass <- tryget(my_list$SNP_CLASS)
 
-    my_gene <- tryget(my_list$DocumentSummary$GENES$GENE_E$NAME)
+    my_gene <- tryget(my_list$GENES$GENE_E$NAME)
+    
+    #if (my_gene == "\n\t") my_gene <- NULL ## TODO: not sure what \n\t means
     # xml2::xml_attr(
   #    xml2::xml_find_first(x2kids[[i]], "Assembly//Component/MapLoc/FxnSet"),
       "symbol"
@@ -166,7 +172,7 @@ ncbi_snp_query <- function(SNPs, key = NULL, ...) {
     # my_gene <- tryget( my_list$Assembly$Component$MapLoc$FxnSet['symbol'] )
     if (is.null(my_gene)) my_gene <- NA
       
-    meta_info_ <- tryget(my_list$DocumentSummary$DOCSUM) 
+    meta_info_ <- tryget(my_list$DOCSUM) 
     meta_info <- strsplit(meta_info_, "=|:|,")[[1]][3]
 
     alleles_ordered <- gsub("g.|[0-9]", "", meta_info)
@@ -187,15 +193,19 @@ ncbi_snp_query <- function(SNPs, key = NULL, ...) {
 
       ## check which of the two alleles grabbed is actually the minor allele
       ## we might have to 'flip' the minor allele if there is no match
-      maf_allele <- my_list$DocumentSummary$GLOBAL_MAFS$MAF$FREQ
-      maf_allele_dissect <- strsplit(maf_allele, "=|/")[[1]]
-      
-      if (is.null(maf_allele)) {
+      ## TODO: find GNOMAD like so length(my_list$GLOBAL_MAFS)
+      maf_allele_df <- sapply(my_list$GLOBAL_MAFS, function(x) x)
+      if(all(maf_allele_df == "\n\t") ) maf_allele_df <- NULL
+      if(is.null(maf_allele_df))
+      {
         maf_allele <- NA
         my_major <- NA
         my_minor <- NA
         my_freq <- NA
       } else {
+        maf_allele <- maf_allele_df[2, maf_allele_df[1,] == "GnomAD"][[1]]
+        maf_allele_dissect <- strsplit(maf_allele, "=|/")[[1]]
+        
         my_minor <- maf_allele_dissect[1]
         my_major <- ifelse(my_minor == variation_allele, ancestral_allele , variation_allele)
         my_freq <- maf_allele_dissect[2]
@@ -207,7 +217,7 @@ ncbi_snp_query <- function(SNPs, key = NULL, ...) {
       my_freq <- NA
     }
 
-    my_pos <- tryget(my_list$DocumentSummary$CHRPOS)
+    my_pos <- tryget(my_list$CHRPOS)
     my_pos <- strsplit(my_pos, ":")[[1]][2]
     #xml2::xml_attr(
     #  xml2::xml_find_first(x2kids[[i]], "Assembly//Component/MapLoc[@physMapInt]"), 
